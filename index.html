@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vòng Quay May Mắn</title>
+  <link rel="icon" href="logo.png" type="image/png" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background-color: #ffeaf5; overflow-x: hidden; }
+    .container { position: relative; width: 100%; min-height: 100vh;
+      background: url("background.png") no-repeat center bottom; background-size: cover;
+      padding-top: 40px; text-align: center; }
+    .wheel-wrapper { position: relative; width: 90vw; max-width: 400px; margin: auto; }
+    #wheel { position: relative; top: 145px; width: 100%;
+      transition: transform 5s ease-out; transform: rotate(0deg); }
+    .arrow { position: absolute; top: 125px; left: 50%; transform: translateX(-50%);
+      width: 30px; z-index: 3; }
+    #spinBtn { margin-top: 200px; width: 160px; height: 55px; background: url(button.png) no-repeat center center;
+      background-size: contain; border: none; cursor: pointer; z-index: 2; position: relative; top: -17px; }
+    html, body { height: 100%; }
+    .popup, .form-container { position: fixed; inset: 0; width: 100vw; height: 100dvh;
+      background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 9999; }
+    .popup-content, .form-content { background: #fff; padding: 20px; border-radius: 10px;
+      width: min(90vw, 350px); text-align: center; }
+    .popup-content button, .form-content button { margin-top: 15px; padding: 10px 20px; font-size: 16px;
+      background: #66ccff; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .form-content input { display: block; width: 90%; margin: 10px auto; padding: 10px; font-size: 16px; }
+    @media (min-width: 768px) {
+      #spinBtn { font-size: 20px; width: 180px; height: 60px; }
+      .arrow { width: 50px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="wheel-wrapper">
+      <img src="arrow.png" class="arrow">
+      <img src="wheel.png" id="wheel">
+    </div>
+
+    <button id="spinBtn"></button>
+  </div>
+
+  <!-- Popup hiện quà -->
+  <div class="popup" id="popup">
+    <div class="popup-content">
+      <p id="prizeText">Bạn trúng: 🎁</p>
+      <button id="claimBtn">Nhận quà</button>
+    </div>
+  </div>
+
+  <!-- Form nhận quà -->
+  <div class="form-container" id="formContainer">
+    <div class="form-content">
+      <h3>Thông tin nhận quà</h3>
+      <input type="text" id="name" placeholder="Tên của bạn">
+      <input type="tel" id="phone" placeholder="Số điện thoại">
+      <button onclick="submitInfo()">Gửi</button>
+    </div>
+  </div>
+
+  <!-- Âm thanh -->
+  <audio id="spinSound" src="spin.mp3" preload="auto"></audio>
+  <audio id="congratsSound" src="congrats.mp3" preload="auto"></audio>
+
+  <script>
+    const prizes = [
+  { name: "10K", weight: 5 },
+  { name: "Bút bi", weight: 40 },
+  { name: "Móc khóa", weight: 20 },
+  { name: "5K", weight: 10 },
+  { name: "Chúc bạn may mắn lần sau", weight: 10 },
+  { name: "Sổ tay", weight: 15 }
+];
+
+    const wheel = document.getElementById("wheel");
+    const spinBtn = document.getElementById("spinBtn");
+    const popup = document.getElementById("popup");
+    const prizeText = document.getElementById("prizeText");
+    const claimBtn = document.getElementById("claimBtn");
+    const formContainer = document.getElementById("formContainer");
+
+    function playSound(audio) {
+      if (audio) {
+        audio.currentTime = 0;
+        audio.play().catch(err => console.error(err));
+      }
+    }
+
+    function weightedRandomPrize() {
+      const total = prizes.reduce((sum, p) => sum + p.weight, 0);
+      const rand = Math.random() * total;
+      let acc = 0;
+      for (let i = 0; i < prizes.length; i++) {
+        acc += prizes[i].weight;
+        if (rand < acc) return { index: i, prize: prizes[i].name };
+      }
+      return { index: 0, prize: prizes[0].name };
+    }
+
+    let deg = 0;
+
+    spinBtn.addEventListener("click", () => {
+      spinBtn.disabled = true;
+
+      const { index, prize } = weightedRandomPrize();
+     const segment = 360 / prizes.length;
+const offset = segment / 2;
+const correction = 4; // tinh chỉnh
+const rotateDeg = 360 * (5 + Math.floor(Math.random() * 4)) + (360 - index * segment - offset + correction);
+
+
+      deg = rotateDeg;
+      wheel.style.transform = `rotate(${deg}deg)`;
+
+      playSound(document.getElementById("spinSound"));
+
+      setTimeout(() => {
+        prizeText.textContent = "Bạn trúng: " + prize;
+        popup.style.display = "flex";
+        playSound(document.getElementById("congratsSound"));
+        spinBtn.disabled = false;
+      }, 5200);
+    });
+
+    claimBtn.addEventListener("click", () => {
+      popup.style.display = "none";
+      formContainer.style.display = "flex";
+    });
+
+    function submitInfo() {
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const prize = prizeText.textContent.replace("Bạn trúng: ", "");
+
+      if (!name || !phone) {
+        alert("Vui lòng nhập đầy đủ thông tin!");
+        return;
+      }
+
+      fetch("https://script.google.com/macros/s/AKfycby4bnc4HFOry2oTXpRJDDldIzEuEXqKhTmn24mDxQHrbmrZlru4D2rbQxbeXbZCxWI4/exec", {
+        method: "POST",
+
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, prize })
+      })
+      .then(() => {
+        alert("Gửi thành công!");
+        formContainer.style.display = "none";
+      })
+      .catch(() => {
+        alert("Gửi thất bại!");
+      });
+    }
+  </script>
+</body>
+</html>
